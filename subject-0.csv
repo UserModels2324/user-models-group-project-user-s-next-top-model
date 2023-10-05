@@ -1,5 +1,0 @@
-trial,start_time,rt,correct,fact_id,question,answer,alpha
-1,9357.017200003611,1379.3017000134569,True,32,cg.png,congo,0.3
-2,13609.904600016307,1240.019199991366,True,32,cg.png,congo,0.3
-3,17975.29110001051,1866.6299000033177,True,106,kn.png,saint kitts and nevis,0.3
-
