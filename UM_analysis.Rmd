@@ -1,0 +1,163 @@
+---
+title: "UM_analysis"
+author: "Lhea Beumer"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+#rm(list = ls())
+setwd("/Users/lheabeumer/Desktop/Usermodels")
+
+library(plyr)
+library(mgcv)
+library(itsadug)
+library(lme4)
+library(dplyr)
+
+# Load data:
+head(subject.2)
+df2 <- subject.2
+df3 <- subject.3
+```
+
+```{r}
+df2 <- df2 %>%
+  group_by(fact_id) %>%
+  mutate(encounter_count = row_number())
+
+df3 <- df3 %>%
+  group_by(fact_id) %>%
+  mutate(encounter_count = row_number())
+
+```
+
+```{r}
+plot(df2$encounter_count, df2$alpha)
+summary(df2)
+df2
+
+plot(df3$encounter_count, df3$alpha)
+summary(df3)
+df3
+```
+
+```{r}
+plot(df2$trial, df2$alpha)
+
+plot(df2[df2$question=="gf.png", ]$encounter_count, df2[df2$question=="gf.png", ]$alpha)
+plot(df2[df2$question=="td.png", ]$encounter_count, df2[df2$question=="td.png", ]$alpha)
+plot(df2[df2$question=="sg.png", ]$encounter_count, df2[df2$question=="sg.png", ]$alpha)
+
+#how many unique flags were seen
+length(unique(df2$fact_id))
+
+data_nonzero2 <- df2[df2$encounter_count>2,]
+data_nonzero2
+
+#how many unique flags were encountered more than 2 times
+length(unique(data_nonzero2$fact_id))
+
+#conc: in 40 mins u can have a reliable alpha for around 124 flags
+
+plot(df3$trial, df3$alpha)
+
+plot(df3[df3$question=="ga.png", ]$encounter_count, df3[df3$question=="ga.png", ]$alpha)
+plot(df3[df3$question=="bo.png", ]$encounter_count, df3[df3$question=="bo.png", ]$alpha)
+plot(df3[df3$question=="kg.png", ]$encounter_count, df3[df3$question=="kg.png", ]$alpha)
+
+#how many unique flags were seen
+length(unique(df3$fact_id))
+
+data_nonzero3 <- df3[df3$encounter_count>2,]
+data_nonzero3
+
+#how many unique flags were encountered more than 2 times
+length(unique(data_nonzero3$fact_id))
+
+#conc: in 40 mins u can have a reliable alpha for around 59 flags
+
+```
+
+```{r}
+bin_width <- 20
+
+# Create a new column 'bin' based on the bin_width
+df2$bin <- cut(df2$trial, breaks = seq(1, max(df2$trial) + bin_width, by = bin_width), labels = FALSE)
+
+# Print the resulting dataframe
+print(df2)
+
+
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+
+# Calculate the average value per bin
+average_per_bin <- df2 %>%
+  group_by(bin) %>%
+  summarize(average_value = mean(alpha, na.rm = TRUE))
+
+# Create a bar plot using ggplot2
+ggplot(average_per_bin, aes(x = bin, y = average_value)) +
+  geom_point(stat = "identity", fill = "blue") +
+  labs(x = "Bin", y = "Average Value") +
+  ggtitle("Average Value per Bin")
+```
+
+```{r}
+df3$bin <- cut(df3$trial, breaks = seq(1, max(df3$trial) + bin_width, by = bin_width), labels = FALSE)
+
+# Print the resulting dataframe
+print(df3)
+
+# Calculate the average value per bin
+average_per_bin <- df3 %>%
+  group_by(bin) %>%
+  summarize(average_value = mean(alpha, na.rm = TRUE))
+
+# Create a bar plot using ggplot2
+ggplot(average_per_bin, aes(x = bin, y = average_value)) +
+  geom_point(stat = "identity", fill = "blue") +
+  labs(x = "Bin", y = "Average Value") +
+  ggtitle("Average Value per Bin")
+```
+
+```{r}
+
+# Create a new column 'bin' based on the bin_width
+data_nonzero2$bin <- cut(data_nonzero2$trial, breaks = seq(1, max(data_nonzero2$trial) + bin_width, by = bin_width), labels = FALSE)
+
+# Print the resulting dataframe
+print(data_nonzero2)
+
+# Calculate the average value per bin
+average_per_bin <- data_nonzero2 %>%
+  group_by(bin) %>%
+  summarize(average_value = mean(alpha, na.rm = TRUE))
+
+# Create a bar plot using ggplot2
+ggplot(average_per_bin, aes(x = bin, y = average_value)) +
+  geom_point(stat = "identity", fill = "blue") +
+  labs(x = "Bin", y = "Average Value") +
+  ggtitle("Average Value per Bin")
+```
+```{r}
+
+# Create a new column 'bin' based on the bin_width
+data_nonzero3$bin <- cut(data_nonzero3$trial, breaks = seq(1, max(data_nonzero3$trial) + bin_width, by = bin_width), labels = FALSE)
+
+# Print the resulting dataframe
+print(data_nonzero3)
+
+# Calculate the average value per bin
+average_per_bin <- data_nonzero3 %>%
+  group_by(bin) %>%
+  summarize(average_value = mean(alpha, na.rm = TRUE))
+
+# Create a bar plot using ggplot2
+ggplot(average_per_bin, aes(x = bin, y = average_value)) +
+  geom_point(stat = "identity", fill = "blue") +
+  labs(x = "Bin", y = "Average Value") +
+  ggtitle("Average Value per Bin")
+```
