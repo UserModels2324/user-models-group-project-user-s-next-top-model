@@ -193,9 +193,9 @@ df2 <- df2 %>%
 
 df2$diff ='^'(df2$rolling_avg_diff,2)
 
-plot(df2$trial, df2$rolling_avg_diff, col = ifelse(df2$fact_id == 71, "red", "grey"))
+plot(df2$trial, df2$rolling_avg, col = ifelse(df2$fact_id == 71, "grey", "grey"), main = "Subject 2", xlab = "Trails", ylab = "Rolling Mean (alpha)")
 
-plot(df2$trial, df2$diff, col = ifelse(df2$fact_id == 71, "grey", "grey"))
+plot(df2$trial, df2$diff, col = ifelse(df2$fact_id == 71, "grey", "grey"), main = "Subject 2", xlab = "Trails", ylab = "Squared difference of the rolling mean (alpha)")
 ```
 ```{r}
 df3 <- df3 %>%
@@ -216,11 +216,11 @@ df3 <- df3 %>%
 df3 <- df3 %>%
   mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
 
-plot(df3$trial, df3$rolling_avg_diff, col= ifelse(df3$fact_id == 103, "grey", "grey"))
+plot(df3$trial, df3$rolling_avg, col= ifelse(df3$fact_id == 103, "grey", "grey"), main = "Subject 3", xlab = "Trails", ylab = "Rolling Mean (alpha)")
 
 df3$diff ='^'(df3$rolling_avg_diff,2)
 
-plot(df3$trial, df3$diff, col = ifelse(df3$fact_id == 71, "red", "grey"))
+plot(df3$trial, df3$diff, col = ifelse(df3$fact_id == 71, "grey", "grey"), main = "Subject 3", xlab = "Trails", ylab = "Squared Difference of the Rolling Mean (alpha)")
 
 
 ```
@@ -243,11 +243,11 @@ df4 <- df4 %>%
 df4 <- df4 %>%
   mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
 
-plot(df4$trial, df4$rolling_avg_diff, col= ifelse(df4$fact_id == 71, "grey", "grey"))
+plot(df4$trial, df4$rolling_avg_diff, col= ifelse(df4$fact_id == 71, "grey", "grey"), main = "Subject 4", xlab = "Trails", ylab = "Rolling Mean (alpha)")
 
 df4$diff ='^'(df4$rolling_avg_diff,2)
 
-plot(df4$trial, df4$diff, col = ifelse(df4$fact_id == 71, "grey", "grey"))
+plot(df4$trial, df4$diff, col = ifelse(df4$fact_id == 71, "grey", "grey"), main = "Subject 4", xlab = "Trails", ylab = "Squared Difference of the Rolling Mean (alpha)")
 ```
 
 ```{r}
@@ -269,10 +269,10 @@ df1 <- df1 %>%
 df1 <- df1 %>%
   mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
 
-plot(df1$trial, df1$rolling_avg_diff, col= ifelse(df1$fact_id == 71, "grey", "grey"))
+plot(df1$trial, df1$rolling_avg_diff, col= ifelse(df1$fact_id == 71, "grey", "grey"), main = "Subject 1", xlab = "Trails", ylab = "Rolling Mean (alpha)")
 
 df1$diff ='^'(df1$rolling_avg_diff,2)
 
-plot(df1$trial, df1$diff, col = ifelse(df1$fact_id == 71, "grey", "grey"))
+plot(df1$trial, df1$diff, col = ifelse(df1$fact_id == 71, "grey", "grey"), main = "Subject 1", xlab = "Trails", ylab = "Squared Difference of the Rolling Mean (alpha)")
 ```
 
