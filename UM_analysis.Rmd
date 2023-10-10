@@ -6,19 +6,21 @@ output: html_document
 ---
 
 ```{r}
-#rm(list = ls())
-setwd("/Users/lheabeumer/Desktop/Usermodels")
+rm(list = ls())
 
 library(plyr)
 library(mgcv)
 library(itsadug)
 library(lme4)
 library(dplyr)
+library(readr)
 
 # Load data:
-head(subject.2)
-df2 <- subject.2
-df3 <- subject.3
+df1 <- read_csv("subject-1.csv")
+df2 <- read_csv("subject-2.csv")
+df3 <- read_csv("subject-3.csv")
+df4 <- read_csv("subject-4.csv")
+#You can see the subject 2 has much more observations that because we increased the feedback time for subjects 3 and 4, so subject 2 would have moved through the items quicker
 ```
 
 ```{r}
@@ -30,20 +32,31 @@ df3 <- df3 %>%
   group_by(fact_id) %>%
   mutate(encounter_count = row_number())
 
+df4 <- df4 %>%
+  group_by(fact_id) %>%
+  mutate(encounter_count = row_number())
+
 ```
 
 ```{r}
-plot(df2$encounter_count, df2$alpha)
+plot(df2$encounter_count, df2$alpha,
+     title(main = 'Subject 2: Plotting the encounters with an item by their average alpha score of that item'), xlab = "The Number of Encounters with an item", ylab = "Average alpha score", xlim = c(0,16), ylim = c(0,0.6), col = c(df2$fact_id))
 summary(df2)
 df2
 
-plot(df3$encounter_count, df3$alpha)
+plot(df3$encounter_count, df3$alpha,
+     title(main = 'Subject 3: Plotting the encounters with an item by their average alpha score of that item'), xlab = "The Number of Encounters with an item", ylab = "Average alpha score", xlim = c(0,16), ylim = c(0,0.6), col = c(df3$fact_id))
 summary(df3)
 df3
+
+plot(df4$encounter_count, df4$alpha,
+     title(main = 'Subject 4: Plotting the encounters with an item by their average alpha score of that item'), xlab = "The Number of Encounters with an item", ylab = "Average alpha score", xlim = c(0,16), ylim = c(0,0.6), col = c(df4$fact_id))
+summary(df4)
+df4
 ```
 
 ```{r}
-plot(df2$trial, df2$alpha)
+plot(df2$trial, df2$alpha, col=c(df2$fact_id))
 
 plot(df2[df2$question=="gf.png", ]$encounter_count, df2[df2$question=="gf.png", ]$alpha)
 plot(df2[df2$question=="td.png", ]$encounter_count, df2[df2$question=="td.png", ]$alpha)
@@ -60,7 +73,9 @@ length(unique(data_nonzero2$fact_id))
 
 #conc: in 40 mins u can have a reliable alpha for around 124 flags
 
-plot(df3$trial, df3$alpha)
+plot(df3$trial, df3$alpha, col=c(df3$fact_id))
+
+plot(df3$trial, df3$rt, col = c(df3$fact_id))
 
 plot(df3[df3$question=="ga.png", ]$encounter_count, df3[df3$question=="ga.png", ]$alpha)
 plot(df3[df3$question=="bo.png", ]$encounter_count, df3[df3$question=="bo.png", ]$alpha)
@@ -88,7 +103,6 @@ df2$bin <- cut(df2$trial, breaks = seq(1, max(df2$trial) + bin_width, by = bin_w
 # Print the resulting dataframe
 print(df2)
 
-
 # Load necessary libraries
 library(dplyr)
 library(ggplot2)
@@ -102,7 +116,7 @@ average_per_bin <- df2 %>%
 ggplot(average_per_bin, aes(x = bin, y = average_value)) +
   geom_point(stat = "identity", fill = "blue") +
   labs(x = "Bin", y = "Average Value") +
-  ggtitle("Average Value per Bin")
+  ggtitle("Subject 2: Average Value per Bin")
 ```
 
 ```{r}
@@ -120,19 +134,16 @@ average_per_bin <- df3 %>%
 ggplot(average_per_bin, aes(x = bin, y = average_value)) +
   geom_point(stat = "identity", fill = "blue") +
   labs(x = "Bin", y = "Average Value") +
-  ggtitle("Average Value per Bin")
+  ggtitle("Subject 3: Average Value per Bin")
 ```
-
 ```{r}
-
-# Create a new column 'bin' based on the bin_width
-data_nonzero2$bin <- cut(data_nonzero2$trial, breaks = seq(1, max(data_nonzero2$trial) + bin_width, by = bin_width), labels = FALSE)
+df4$bin <- cut(df4$trial, breaks = seq(1, max(df4$trial) + bin_width, by = bin_width), labels = FALSE)
 
 # Print the resulting dataframe
-print(data_nonzero2)
+print(df4)
 
 # Calculate the average value per bin
-average_per_bin <- data_nonzero2 %>%
+average_per_bin <- df4 %>%
   group_by(bin) %>%
   summarize(average_value = mean(alpha, na.rm = TRUE))
 
@@ -140,24 +151,128 @@ average_per_bin <- data_nonzero2 %>%
 ggplot(average_per_bin, aes(x = bin, y = average_value)) +
   geom_point(stat = "identity", fill = "blue") +
   labs(x = "Bin", y = "Average Value") +
-  ggtitle("Average Value per Bin")
+  ggtitle("Subject 4: Average Value per Bin")
+```
+
+```{r}
+estimate_alpha <- 
+  
+  (self, encounters, activation, response, previous_alpha):
+        # type: ([Encounter], float, Response, float) -> float
+        """
+        Estimate the rate of forgetting parameter (alpha) for an item.
+        """
+        if len(encounters) < 3:
+            return(self.DEFAULT_ALPHA)
+
+        a_fit = previous_alpha
+        reading_time = self.get_reading_time(response.fact.question)
+        estimated_rt = self.estimate_reaction_time_from_activation(activation, reading_time)
+        est_diff = estimated_rt - self.normalise_reaction_time(response)
 ```
 ```{r}
+library(zoo)
+window_size <- 3
+df2 <- df2 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg = rollmean(alpha, k = window_size, fill = NA, align = "right"))
 
-# Create a new column 'bin' based on the bin_width
-data_nonzero3$bin <- cut(data_nonzero3$trial, breaks = seq(1, max(data_nonzero3$trial) + bin_width, by = bin_width), labels = FALSE)
+df2 <- df2 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_sd = rollapply(alpha, 2, FUN = sd, fill = NA, align = "right"))
 
-# Print the resulting dataframe
-print(data_nonzero3)
+df2 <- df2 %>%
+  mutate(rolling_avg = ifelse(is.na(rolling_avg), alpha, rolling_avg))
 
-# Calculate the average value per bin
-average_per_bin <- data_nonzero3 %>%
-  group_by(bin) %>%
-  summarize(average_value = mean(alpha, na.rm = TRUE))
+df2 <- df2 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg_diff = rolling_avg - lag(rolling_avg))
 
-# Create a bar plot using ggplot2
-ggplot(average_per_bin, aes(x = bin, y = average_value)) +
-  geom_point(stat = "identity", fill = "blue") +
-  labs(x = "Bin", y = "Average Value") +
-  ggtitle("Average Value per Bin")
+df2 <- df2 %>%
+  mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
+
+df2$diff ='^'(df2$rolling_avg_diff,2)
+
+plot(df2$trial, df2$rolling_avg_diff, col = ifelse(df2$fact_id == 71, "red", "grey"))
+
+plot(df2$trial, df2$diff, col = ifelse(df2$fact_id == 71, "grey", "grey"))
 ```
+```{r}
+df3 <- df3 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg = rollmean(alpha, k = window_size, fill = NA, align = "right"))
+
+df3 <- df3 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_sd = rollapply(alpha, 2, FUN = sd, fill = NA, align = "right"))
+
+df3 <- df3 %>%
+  mutate(rolling_avg = ifelse(is.na(rolling_avg), alpha, rolling_avg))
+
+df3 <- df3 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg_diff = rolling_avg - lag(rolling_avg))
+
+df3 <- df3 %>%
+  mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
+
+plot(df3$trial, df3$rolling_avg_diff, col= ifelse(df3$fact_id == 103, "grey", "grey"))
+
+df3$diff ='^'(df3$rolling_avg_diff,2)
+
+plot(df3$trial, df3$diff, col = ifelse(df3$fact_id == 71, "red", "grey"))
+
+
+```
+```{r}
+df4 <- df4 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg = rollmean(alpha, k = window_size, fill = NA, align = "right"))
+
+df4 <- df4 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_sd = rollapply(alpha, 2, FUN = sd, fill = NA, align = "right"))
+
+df4 <- df4 %>%
+  mutate(rolling_avg = ifelse(is.na(rolling_avg), alpha, rolling_avg))
+
+df4 <- df4 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg_diff = rolling_avg - lag(rolling_avg))
+
+df4 <- df4 %>%
+  mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
+
+plot(df4$trial, df4$rolling_avg_diff, col= ifelse(df4$fact_id == 71, "grey", "grey"))
+
+df4$diff ='^'(df4$rolling_avg_diff,2)
+
+plot(df4$trial, df4$diff, col = ifelse(df4$fact_id == 71, "grey", "grey"))
+```
+
+```{r}
+df1 <- df1 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg = rollmean(alpha, k = window_size, fill = NA, align = "right"))
+
+df1 <- df1 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_sd = rollapply(alpha, 2, FUN = sd, fill = NA, align = "right"))
+
+df1 <- df1 %>%
+  mutate(rolling_avg = ifelse(is.na(rolling_avg), alpha, rolling_avg))
+
+df1 <- df1 %>%
+  group_by(fact_id) %>%
+  mutate(rolling_avg_diff = rolling_avg - lag(rolling_avg))
+
+df1 <- df1 %>%
+  mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
+
+plot(df1$trial, df1$rolling_avg_diff, col= ifelse(df1$fact_id == 71, "grey", "grey"))
+
+df1$diff ='^'(df1$rolling_avg_diff,2)
+
+plot(df1$trial, df1$diff, col = ifelse(df1$fact_id == 71, "grey", "grey"))
+```
+
