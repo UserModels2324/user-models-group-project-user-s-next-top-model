@@ -1,0 +1,170 @@
+---
+title: "Flag data analyses"
+output: html_document
+date: "2023-11-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls())
+library(dplyr)
+library(plotfunctions)
+library(readr)
+library(OmicsPLS)
+library(ggplot2)
+```
+
+```{r}
+# Load in and merge data files hour condition
+setwd('~/Documents/User-Models/Data/Hour')
+datHour <- list.files(path='~/Documents/User-Models/Data/Hour') %>% 
+  lapply(read_csv) %>% 
+  bind_rows 
+
+setwd('~/Documents/User-Models/Data/Twenty')
+dat20 <- list.files(path='~/Documents/User-Models/Data/Twenty') %>% 
+  lapply(read_csv) %>% 
+  bind_rows
+
+setwd('~/Documents/User-Models/Data/Fatigue')
+datFat <- list.files(path='~/Documents/User-Models/Data/Fatigue') %>% 
+  lapply(read_csv) %>% 
+  bind_rows
+
+temp <- rbind(datHour,dat20)
+dat <- rbind(temp,datFat)
+
+# Add subject numbers
+num <- 0
+for (i in 1:nrow(dat)){
+  if (dat$trial[i] == 1){
+    num <- num + 1
+  }
+  dat$subject[i] <- num
+}
+
+# CHANGE SUBJECT NUMBERS HERE IF NEW DATA IS ADDED!!!!
+for (i in 1:nrow(dat)){
+  if (dat$subject[i] <= 3){
+    dat$cond[i] <- 'Grind'
+  }
+  else if (dat$subject[i] > 3 && dat$subject[i] <= 7){
+    dat$cond[i] <- 'Pomodoro'
+  }
+  else if (dat$subject[i] > 7 && dat$subject[i] <= 12){
+    dat$cond[i] <- 'User model'
+  }
+}
+
+# Counts the time an item was seen by someone 
+dat <- dat %>%
+  group_by(subject, fact_id) %>%
+  mutate(encounter_count_pp = row_number())
+
+# Only data of items seen more than twice 
+newDat <- dat[dat$encounter_count_pp>2,]
+
+# Create a new column 'bin' based on the bin_width
+bin_width <- 20
+newDat$bin <- cut(newDat$trial, breaks = seq(1, max(newDat$trial) + bin_width, by = bin_width), labels = FALSE)
+
+average_per_bin <- newDat %>%
+  group_by(cond, subject, bin) %>%
+  summarize(average_alpha = mean(alpha, na.rm = TRUE))
+
+ggplot(average_per_bin, aes(x = cond, y = average_alpha)) +
+  geom_point(stat = "identity", fill = "blue") +
+  labs(x = "Condition", y = "Average Alpha") +
+  ggtitle("Average Alpha per condition")
+```
+
+```{r}
+library(zoo)
+window_size <- 3
+newDat <- newDat %>%
+  group_by(subject, fact_id) %>%
+  mutate(rolling_avg = rollmean(alpha, k = window_size, fill = NA, align = "right"))
+
+newDat <- newDat %>%
+  group_by(subject, fact_id) %>%
+  mutate(rolling_sd = rollapply(alpha, 2, FUN = sd, fill = NA, align = "right"))
+
+newDat <- newDat %>%
+  mutate(rolling_avg = ifelse(is.na(rolling_avg), alpha, rolling_avg))
+
+newDat <- newDat %>%
+  group_by(subject, fact_id) %>%
+  mutate(rolling_avg_diff = rolling_avg - lag(rolling_avg))
+
+newDat <- newDat %>%
+  mutate(rolling_avg_diff = ifelse(is.na(rolling_avg_diff), 0, rolling_avg_diff))
+
+newDat$diff ='^'(newDat$rolling_avg_diff,2)
+
+rol_avg_per_bin <- newDat %>%
+  group_by(cond, subject, bin) %>%
+  summarize(rol_avg_alpha = mean(rolling_avg, na.rm = TRUE))
+
+```
+
+```{r}
+ggplot(rol_avg_per_bin, aes(x = cond, y = rol_avg_alpha)) +
+  geom_point(stat = "identity", fill = "blue") +
+  labs(x = "Condition", y = "Rolling average Alpha") +
+  ggtitle("Rolling average Alpha per condition")
+
+rol_avg_per_bin$cond <- as.factor(rol_avg_per_bin$cond)
+boxplot(rol_avg_alpha ~ cond, data = rol_avg_per_bin, col = c("yellow", "orange", "red"), ylab = "Rolling average Alpha", xlab = "Condition", main = "Rolling averagre alpha per condition")
+legend('topleft', legend = c("Grind", "Pomodoro", "User model"), col = c("yellow", "orange", "red"), pch = c(15,15,15))
+
+datH <- newDat[newDat$cond == "Grind",]
+datT <- newDat[newDat$cond == "Pomodoro",]
+datF <- newDat[newDat$cond == "User model",]
+
+emptyPlot(range(newDat$trial), range(newDat$rolling_avg), xlab = "Trials", ylab = "Rolling average (alpha)", main = "Rolling averagre alpha over trials")
+points(datH$trial, datH$rolling_avg, pch = 4, col = c("#c718e5"))
+points(datT$trial, datT$rolling_avg, pch = 2, col = c("orange"))
+points(datF$trial, datF$rolling_avg, pch = 21, col = c("red"))
+legend('topright', legend = c("Grind", "Pomodoro", "User model"), col = c("#c718e5", "orange", "red"), pch = c(4,2,21))
+
+```
+
+```{r}
+# First 30 minutes of the experiment 
+beginDat <- newDat[newDat$start_time <= 2100000,]
+# All time after the first 30 minutes of the experiment
+endDat <- newDat[newDat$start_time > 2100000,]
+
+rol_avg_per_bin_begin <- beginDat %>%
+  group_by(cond, subject, bin) %>%
+  summarize(rol_avg_alpha = mean(rolling_avg, na.rm = TRUE))
+
+rol_avg_per_bin_end <- endDat %>%
+  group_by(cond, subject, bin) %>%
+  summarize(rol_avg_alpha = mean(rolling_avg, na.rm = TRUE))
+
+boxplot(rol_avg_alpha ~ cond, data = rol_avg_per_bin_begin, col = c("#c718e5", "orange", "red"), ylab = "Rolling average Alpha", xlab = "Condition", main = "Rolling averagre alpha per condition (0-35 minutes)")
+#legend('topright', legend = c("Grind", "Pomodoro", "User model"), col = c("#c718e5", "orange", "red"), pch = c(15,15,15))
+
+boxplot(rol_avg_alpha ~ cond, data = rol_avg_per_bin_end, col = c("#c718e5", "orange", "red"), ylab = "Rolling average Alpha", xlab = "Condition", main = "Rolling averagre alpha per condition (35 min - end of experiment)")
+#legend('topright', legend = c("Grind", "Pomodoro", "User model"), col = c("#c718e5", "orange", "red"), pch = c(15,15,15))
+```
+
+
+```{r}
+# Left over code, not working
+for(i in 4:513)
+  rol_avg <- (dat[i-1,'alpha'] + dat[i-2,'alpha'] + dat[i-3,'alpha'])/3
+  new_rol_avg <- (dat[i,'alpha'] + dat[i-1,'alpha'] + dat[i-2,'alpha'])/3
+  diff_alpha[i-3,] <- rol_avg - new_rol_avg
+  dat$sq_diff_alpha[i-3,] <- (diff_alpha[i-3,])^2
+  
+plot(newDat$trial, newDat$rolling_avg, col = newDat$cond, main = "Rolling average Alpha per condition", xlab = "Trails", ylab = "Rolling Average (alpha)")
+legend('topright', legend = newDat$cond, col = newDat$cond)
+
+plot(newDat$trial, newDat$diff, col = ifelse(newDat$fact_id == 71, "grey", "grey"), main = "Subject 2", xlab = "Trails", ylab = "Squared difference of the rolling mean (alpha)")
+```
+
