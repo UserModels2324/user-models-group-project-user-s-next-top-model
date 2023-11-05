@@ -276,3 +276,20 @@ df1$diff ='^'(df1$rolling_avg_diff,2)
 plot(df1$trial, df1$diff, col = ifelse(df1$fact_id == 71, "grey", "grey"), main = "Subject 1", xlab = "Trails", ylab = "Squared Difference of the Rolling Mean (alpha)")
 ```
 
+```{r}
+df4 <- df4 %>%
+  group_by(fact_id) %>%
+  mutate(prevalpha = lag(alpha))
+
+df4 <- df4 %>%
+  mutate(prevalpha = ifelse(is.na(prevalpha), 0.3, prevalpha))
+
+df4 <- df4 %>%
+  group_by(fact_id) %>%
+  mutate(alpha_diff = prevalpha - alpha)
+
+df4$sqr ='^'(df4$alpha_diff,2)
+
+plot(df4$trial, df4$sqr, col = ifelse(df4$fact_id == 71, "grey", "grey"), main = "Subject 1", xlab = "Trails", ylab = "Squared Difference of (alpha)")
+```
+
