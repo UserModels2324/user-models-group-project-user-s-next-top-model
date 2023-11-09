@@ -19,18 +19,18 @@ library(ggplot2)
 
 ```{r}
 # Load in and merge data files hour condition
-setwd('C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Hour') 
-datHour <- list.files(path='C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Hour') %>%
+setwd('/Users/kiera/Documents/GitHub/user-models-group-project-user-s-next-top-model/Hour') 
+datHour <- list.files(path='/Users/kiera/Documents/GitHub/user-models-group-project-user-s-next-top-model/Hour') %>%
   lapply(read_csv) %>%
   bind_rows
 
-setwd('C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Twenty')
-dat20 <- list.files(path='C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Twenty') %>%
+setwd('/Users/kiera/Documents/GitHub/user-models-group-project-user-s-next-top-model/Twenty')
+dat20 <- list.files(path='/Users/kiera/Documents/GitHub/user-models-group-project-user-s-next-top-model/Twenty') %>%
   lapply(read_csv) %>%
   bind_rows
 
-setwd('C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Fatigue')
-datFat <- list.files(path='C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Fatigue') %>% 
+setwd('/Users/kiera/Documents/GitHub/user-models-group-project-user-s-next-top-model/Fatigue')
+datFat <- list.files(path='/Users/kiera/Documents/GitHub/user-models-group-project-user-s-next-top-model/Fatigue') %>% 
   lapply(read_csv) %>%
   bind_rows
 
@@ -79,9 +79,41 @@ newDat$correct <- as.numeric(newDat$correct)
 
 # Look at the accuracy by condition:
 
-mean(newDat[newDat$cond=="Grind",]$correct) 
-mean(newDat[newDat$cond=="Pomodoro",]$correct) 
-mean(newDat[newDat$cond=="User model",]$correct)
+grinderror <- 1- mean(newDat[newDat$cond=="Grind",]$correct) 
+pomoerror <- 1- mean(newDat[newDat$cond=="Pomodoro",]$correct) 
+usererror <- 1 - mean(newDat[newDat$cond=="User model",]$correct)
+
+grinderrorsd <- se(newDat[newDat$cond=="Grind",]$correct) 
+pomoerrorsd <- se(newDat[newDat$cond=="Pomodoro",]$correct) 
+usererrorsd <- se(newDat[newDat$cond=="User model",]$correct)
+
+```
+```{r}
+results <- data.frame(
+  Condition = c("Grind", "Pomodoro", "User Model"),
+  Mean = c(grinderror, pomoerror, usererror),
+  SD = c(grinderrorsd, pomoerrorsd, usererrorsd)
+)
+
+barplot(results$Mean, 
+        names.arg = results$Condition, 
+        ylim = c(0, max(results$Mean) + max(results$SD)), 
+        main = "Mean Error Rates across Conditions",
+        xlab = "Conditions",
+        ylab = "Error Rate",
+        col = c("#c718e5", "orange", "red"),
+        beside = TRUE)
+
+arrows(
+  x0 = 1:3 - 0.1,  # Adjusted x-coordinates
+  y0 = results$Mean - results$SD, 
+  x1 = 1:3 - 0.1,  # Adjusted x-coordinates
+  y1 = results$Mean + results$SD, 
+  angle = 90, 
+  code = 3, 
+  length = 0.1
+)
+
 ```
 
 ```{r}
@@ -106,11 +138,11 @@ correctDat <- correctDat[correctDat$rt<190000,]
 # means and standard deviations
 
 mean(correctDat[correctDat$cond=="Grind",]$rt, na.rm = TRUE) 
-sd(correctDat[correctDat$cond=="Grind",]$rt, na.rm = TRUE) 
+se(correctDat[correctDat$cond=="Grind",]$rt, na.rm = TRUE) 
 mean(correctDat[correctDat$cond=="Pomodoro",]$rt, na.rm = TRUE) 
-sd(correctDat[correctDat$cond=="Pomodoro",]$rt, na.rm = TRUE) 
+se(correctDat[correctDat$cond=="Pomodoro",]$rt, na.rm = TRUE) 
 mean(correctDat[correctDat$cond=="User model",]$rt, na.rm = TRUE) 
-sd(correctDat[correctDat$cond=="User model",]$rt, na.rm = TRUE)
+se(correctDat[correctDat$cond=="User model",]$rt, na.rm = TRUE)
 
 # Plot RT's up to 5000ms (for readability)
 
