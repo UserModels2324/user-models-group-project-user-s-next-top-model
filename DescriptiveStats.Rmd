@@ -1,0 +1,145 @@
+---
+title: "Flag data descriptive analyses"
+output: html_document
+date: "2023-11-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list = ls())
+library(dplyr)
+library(plotfunctions)
+library(readr)
+library(FSA)
+library(ggplot2)
+```
+
+```{r}
+# Load in and merge data files hour condition
+setwd('C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Hour') 
+datHour <- list.files(path='C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Hour') %>%
+  lapply(read_csv) %>%
+  bind_rows
+
+setwd('C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Twenty')
+dat20 <- list.files(path='C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Twenty') %>%
+  lapply(read_csv) %>%
+  bind_rows
+
+setwd('C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Fatigue')
+datFat <- list.files(path='C:/Users/Gebruiker/Pictures/usermodels/user-models-group-project-user-s-next-top-model/Fatigue') %>% 
+  lapply(read_csv) %>%
+  bind_rows
+
+temp <- rbind(datHour,dat20) 
+dat <- rbind(temp,datFat)
+
+# Add subject numbers
+
+num <- 0 
+for (i in 1:nrow(dat)){ 
+  if (dat$trial[i] == 1){
+    num <- num + 1  
+    }  
+  dat$subject[i] <- num 
+  }
+
+# CHANGE SUBJECT NUMBERS HERE IF NEW DATA IS ADDED!!!!
+
+for (i in 1:nrow(dat)){ 
+  if (dat$subject[i] <= 3){  
+    dat$cond[i] <- 'Grind' } 
+  else if (dat$subject[i] > 3 && dat$subject[i] <= 7){
+    dat$cond[i] <- 'Pomodoro'  }
+  else if (dat$subject[i] > 7 && dat$subject[i] <= 12){
+    dat$cond[i] <- 'User model' } 
+  }
+
+# Counts the time an item was seen by someone
+
+dat <- dat %>% 
+  group_by(subject, fact_id) %>% 
+  mutate(encounter_count_pp = row_number())
+
+# Only data of items seen more than twice
+
+newDat <- dat[dat$encounter_count_pp>2,]
+```
+
+```{r}
+
+##################################################### Accuracy
+
+# Convert True and False to 0's and 1's
+
+newDat$correct <- as.numeric(newDat$correct)
+
+# Look at the accuracy by condition:
+
+mean(newDat[newDat$cond=="Grind",]$correct) 
+mean(newDat[newDat$cond=="Pomodoro",]$correct) 
+mean(newDat[newDat$cond=="User model",]$correct)
+```
+
+```{r}
+################################################### RT
+
+# take only correct trials
+
+correctDat <- newDat[newDat$correct==1,]
+
+# remove any with infinite RT (if they fully deleted an answer)
+
+correctDat <- correctDat[correctDat$rt!=Inf,]
+
+# take a look at the data
+#hist(correctDat$rt) 
+#range(na.omit(correctDat$rt))
+
+# remove the outlier trial where they stared at the Angolan flag for over 3mins
+
+correctDat <- correctDat[correctDat$rt<190000,]
+
+# means and standard deviations
+
+mean(correctDat[correctDat$cond=="Grind",]$rt, na.rm = TRUE) 
+sd(correctDat[correctDat$cond=="Grind",]$rt, na.rm = TRUE) 
+mean(correctDat[correctDat$cond=="Pomodoro",]$rt, na.rm = TRUE) 
+sd(correctDat[correctDat$cond=="Pomodoro",]$rt, na.rm = TRUE) 
+mean(correctDat[correctDat$cond=="User model",]$rt, na.rm = TRUE) 
+sd(correctDat[correctDat$cond=="User model",]$rt, na.rm = TRUE)
+
+# Plot RT's up to 5000ms (for readability)
+
+dummy <- correctDat %>% 
+  group_by(cond) %>% 
+  summarize(mean = mean(rt, na.rm = TRUE)) 
+ggplot(correctDat[correctDat$rt<5000,], aes(x = rt, fill = cond)) + 
+  geom_density(alpha = 0.5) + 
+  geom_vline(data = dummy, aes(xintercept = mean, color = cond), linetype = "dashed", size = 0.75) + 
+  labs(title = "Response Times up to 5000ms", x = "RT (ms)", y = "Frequency")
+
+# Check for significant differences:
+
+# non normally distributed data so can't ANOVA but kruskal works okay
+kruskal.test(rt ~ cond, data = correctDat) 
+
+# pairwise comparison, correct for multiple comparisons
+dunnTest(rt ~ cond, data = correctDat, method = "bonferroni")
+```
+
+```{r}
+# Speed Accuracy Trade-off:
+# Theoretical correct answers per hour per condition, higher the better
+
+1000*60*60/mean(correctDat[correctDat$cond=="Grind",]$rt, na.rm = TRUE)*mean(newDat[newDat$cond=="Grind",]$correct) 
+
+1000*60*60/mean(correctDat[correctDat$cond=="Pomodoro",]$rt, na.rm = TRUE)*mean(newDat[newDat$cond=="Pomodoro",]$correct) 
+
+1000*60*60/mean(correctDat[correctDat$cond=="User model",]$rt, na.rm = TRUE)*mean(newDat[newDat$cond=="User model",]$correct) 
+
+
+```
